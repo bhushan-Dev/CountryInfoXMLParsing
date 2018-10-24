@@ -44,11 +44,15 @@ class ViewController: UIViewController {
             let xmlParser = XMLParser(contentsOf: url!)
             xmlParser?.delegate = self
             xmlParser?.parse()
+
+            // Set delegate and data source for table view
+            tableView.delegate = self
+            tableView.dataSource = self
         }
     }
 }
 
-// MARK: Delegates
+// MARK: XML Delegates
 
 extension ViewController: XMLParserDelegate {
 
@@ -94,12 +98,49 @@ extension ViewController: XMLParserDelegate {
                     let iso = countryDict!["iso"] as? String,
                     let countryCode = countryDict!["code"] as? String {
 
-                    dataModel?.append(CountryListDataModel(countryName: countryName, continent: continent, ios: iso, countryCode: countryCode))
+                    dataModel?.append(CountryListDataModel(countryName: countryName, continent: continent, iso: iso, countryCode: countryCode))
                 }
             }
         }
 
         strCharacters = nil
+    }
+
+}
+
+
+// MARK: Table View Delegate
+
+extension ViewController: UITableViewDelegate {
+
+}
+
+
+// MARK: Table View Data Source
+
+extension ViewController: UITableViewDataSource {
+
+    public func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        guard let dataModel = dataModel else {
+            return 0
+        }
+
+        return dataModel.count
+    }
+
+    public func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell: CountryTableViewCell = tableView.dequeueReusableCell(withIdentifier: "CountryCell") as! CountryTableViewCell
+
+        if let dataModel = dataModel {
+            let data = dataModel[indexPath.row]
+
+            cell.countryName.text = data.countryName
+            cell.continent.text = data.continent
+            cell.iso.text = data.iso
+            cell.countryCode.text = data.countryCode
+        }
+
+        return cell
     }
 
 }

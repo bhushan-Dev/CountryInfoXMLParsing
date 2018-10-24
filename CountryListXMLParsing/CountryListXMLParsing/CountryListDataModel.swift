@@ -11,13 +11,13 @@ import Foundation
 class CountryListDataModel {
     var countryName: String
     var continent: String
-    var ios: String
+    var iso: String
     var countryCode: String
 
-    init(countryName: String, continent: String, ios: String, countryCode: String) {
+    init(countryName: String, continent: String, iso: String, countryCode: String) {
         self.countryName = countryName
         self.continent = continent
-        self.ios = ios
+        self.iso = iso
         self.countryCode = countryCode
     }
 }
