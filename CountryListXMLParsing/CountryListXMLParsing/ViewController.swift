@@ -17,10 +17,12 @@ class ViewController: UIViewController {
     var countriesList: Array<Dictionary<String, Any>>?
     var strCharacters: String? = nil
     var dataModel: [CountryListDataModel]?
+    let countryCellIdentifier = "CountryCell"
 
     // MARK: IBOutlets
 
     @IBOutlet weak var tableView: UITableView!
+    @IBOutlet weak var activityIndicator: UIActivityIndicatorView!
 
 
     // MARK: Life Cycle methods
@@ -30,25 +32,63 @@ class ViewController: UIViewController {
 
         // Fetch country list info
         fetchCountryList()
-
-        print(dataModel?.count)
-
     }
 
-    // MARK: Actions
+    // MARK: Private Helpers
 
     private func fetchCountryList() {
+
         let url = URL(string: baseUrl)
         dataModel = [CountryListDataModel]()
-        if let _ = url {
-            let xmlParser = XMLParser(contentsOf: url!)
-            xmlParser?.delegate = self
-            xmlParser?.parse()
 
-            // Set delegate and data source for table view
-            tableView.delegate = self
-            tableView.dataSource = self
+        guard let _ = url else {
+            return
         }
+
+        // Show activity indicator
+        activityIndicator.isHidden = false
+        activityIndicator.startAnimating()
+
+        let task = URLSession.shared.dataTask(with: url! as URL) { (data, response, error) in
+
+            // Hide activity indicator
+            DispatchQueue.main.async {
+                self.activityIndicator.isHidden = true
+                self.activityIndicator.stopAnimating()
+            }
+
+            if let error = error {
+                DispatchQueue.main.async {
+                    // Show network alert
+                    self.showAlert(with: String(describing: error.localizedDescription))
+                }
+            }
+
+            if data == nil {
+                return
+            }
+
+            // Parse xml data
+            let xmlParser = XMLParser(data: data!)
+            xmlParser.delegate = self
+            xmlParser.parse()
+
+            DispatchQueue.main.async {
+                // Set delegate and data source for table view
+                self.tableView.delegate = self
+                self.tableView.dataSource = self
+                self.tableView.reloadData()
+            }
+        }
+        task.resume()
+    }
+
+    private func showAlert(with message: String) {
+        let alert = UIAlertController(title: "Network Error", message: message, preferredStyle: UIAlertControllerStyle.alert)
+        let okButton = UIAlertAction(title: "OK", style: UIAlertActionStyle.default, handler: nil)
+        alert.addAction(okButton)
+
+        self.present(alert, animated: true, completion: nil)
     }
 }
 
@@ -63,11 +103,8 @@ extension ViewController: XMLParserDelegate {
         qualifiedName qName: String?,
         attributes attributeDict: [String : String] = [:]
         ) {
-        print("Found: \(elementName)")
-
         if elementName == "country" {
             countryDict = [:]
-
             countryDict = attributeDict
         }
     }
@@ -76,8 +113,9 @@ extension ViewController: XMLParserDelegate {
         _ parser: XMLParser,
         foundCharacters string: String
         ) {
-        print("Found: \(string)")
-        strCharacters = string
+        if (!string.isEmpty) {
+            strCharacters = string
+        }
     }
 
     func parser(
@@ -86,13 +124,10 @@ extension ViewController: XMLParserDelegate {
         namespaceURI: String?,
         qualifiedName qName: String?
         ) {
-        print("Found: \(elementName)")
-
         if let _ = countryDict {
             countryDict![elementName] = strCharacters
 
             if elementName == "country" {
-
                 if let countryName = countryDict!["country"] as? String,
                     let continent = countryDict!["continent"] as? String,
                     let iso = countryDict!["iso"] as? String,
@@ -105,7 +140,6 @@ extension ViewController: XMLParserDelegate {
 
         strCharacters = nil
     }
-
 }
 
 
@@ -120,7 +154,10 @@ extension ViewController: UITableViewDelegate {
 
 extension ViewController: UITableViewDataSource {
 
-    public func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+    public func tableView(
+        _ tableView: UITableView,
+        numberOfRowsInSection section: Int
+        ) -> Int {
         guard let dataModel = dataModel else {
             return 0
         }
@@ -128,8 +165,11 @@ extension ViewController: UITableViewDataSource {
         return dataModel.count
     }
 
-    public func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell: CountryTableViewCell = tableView.dequeueReusableCell(withIdentifier: "CountryCell") as! CountryTableViewCell
+    public func tableView(
+        _ tableView: UITableView,
+        cellForRowAt indexPath: IndexPath
+        ) -> UITableViewCell {
+        let cell: CountryTableViewCell = tableView.dequeueReusableCell(withIdentifier: countryCellIdentifier) as! CountryTableViewCell
 
         if let dataModel = dataModel {
             let data = dataModel[indexPath.row]
@@ -138,6 +178,9 @@ extension ViewController: UITableViewDataSource {
             cell.continent.text = data.continent
             cell.iso.text = data.iso
             cell.countryCode.text = data.countryCode
+
+            cell.layer.borderWidth = 0.5
+            cell.layer.borderColor = UIColor.gray.cgColor
         }
 
         return cell
