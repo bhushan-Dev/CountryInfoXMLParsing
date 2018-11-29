@@ -30,11 +30,17 @@ class ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        configureNavigationBar()
+
         // Fetch country list info
         fetchCountryList()
     }
 
     // MARK: Private Helpers
+
+    private func configureNavigationBar() {
+        navigationController?.navigationBar.prefersLargeTitles = true
+    }
 
     private func fetchCountryList() {
 
